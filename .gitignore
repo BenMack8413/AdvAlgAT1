@@ -1,0 +1,17 @@
+# Output Build Directories
+bin/
+build/
+
+# Compiled Object Files & Executables
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+regex_tool
+
+# OS & Editor Specific Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
