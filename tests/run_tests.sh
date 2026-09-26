@@ -55,7 +55,7 @@ run_test "Direct String Match" "(a|b)*c" "test string with abac inside" "abac"
 run_test "Direct String Non-Match" "xyz" "hello world" "No match found"
 
 # Test 1.3: Quantifier String Match
-run_test "Direct String Plus Quantifier" "go+l" "goooal" "goooal"
+run_test "Direct String Plus Quantifier" "go+al" "goooal" "goooal"
 
 
 # -----------------------------------------------------------------------------
