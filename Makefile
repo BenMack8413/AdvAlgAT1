@@ -17,26 +17,25 @@ SRCS     = src/main.cpp \
            src/Logic/RegexMatcher.cpp \
            src/Output/OutputFormatter.cpp
 
-# Map src/%.cpp to build/%.o
 OBJS     = $(patsubst src/%.cpp, $(BUILD_DIR)/%.o, $(SRCS))
 
 all: $(TARGET)
 
-# Link object files into executable inside bin/
 $(TARGET): $(OBJS) | $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Compile source files into build/ (mkdir -p creates subfolders automatically)
 $(BUILD_DIR)/%.o: src/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Create executable output folder
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Clean deletes the build and bin output folders
+# Run test suite
+test: $(TARGET)
+	@bash tests/run_tests.sh
+
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
 
-.PHONY: all clean
+.PHONY: all test clean
