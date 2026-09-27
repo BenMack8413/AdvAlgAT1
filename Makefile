@@ -2,18 +2,17 @@
 CXX      = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Isrc
 
-# Custom Output Directories
 BUILD_DIR = build
 BIN_DIR   = bin
+TARGET    = $(BIN_DIR)/regex_tool
 
-# Target executable location
-TARGET   = $(BIN_DIR)/regex_tool
-
-# Source files
 SRCS     = src/main.cpp \
            src/RegexApp.cpp \
            src/Input/InputHandler.cpp \
            src/Input/FileReader.cpp \
+           src/Logic/Tokeniser.cpp \
+           src/Logic/Parser.cpp \
+           src/Logic/NfaBuilder.cpp \
            src/Logic/RegexMatcher.cpp \
            src/Output/OutputFormatter.cpp
 
@@ -31,7 +30,6 @@ $(BUILD_DIR)/%.o: src/%.cpp
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
-# Run test suite
 test: $(TARGET)
 	@bash tests/run_tests.sh
 
