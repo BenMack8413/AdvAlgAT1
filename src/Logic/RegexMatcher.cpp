@@ -12,7 +12,7 @@ RegexMatcher::RegexMatcher(const std::string& pattern, bool case_insensitive) {
     nfa_ = NfaBuilder::build_from_postfix(postfix);
 }
 
-std::unordered_set<State*> RegexMatcher::get_epsilon_closure(const std::unordered_set<State*>& states) const {
+std::unordered_set<State*> RegexMatcher::get_epsilon_closure(const std::unordered_set<State*>& states, bool at_start, bool at_end) const {
     std::unordered_set<State*> closure = states;
     std::stack<State*> stack;
 
@@ -21,6 +21,10 @@ std::unordered_set<State*> RegexMatcher::get_epsilon_closure(const std::unordere
     while (!stack.empty()) {
         State* current = stack.top();
         stack.pop();
+
+        // Block traversal if the anchor assertion condition fails
+        if (current->anchor_assertion == Anchor::Start && !at_start) continue;
+        if (current->anchor_assertion == Anchor::End && !at_end) continue;
 
         for (State* next : current->epsilon_transitions) {
             if (closure.find(next) == closure.end()) {
@@ -36,20 +40,19 @@ MatchResult RegexMatcher::find_match(const std::string& text) const {
     MatchResult result;
     if (!nfa_.start) return result;
 
-    // Left-most match evaluation: prioritize matches that start earlier in the string
     for (size_t start_pos = 0; start_pos <= text.length(); ++start_pos) {
-        std::unordered_set<State*> current_states = get_epsilon_closure({nfa_.start});
+        bool initial_at_start = (start_pos == 0);
+        bool initial_at_end = (start_pos == text.length());
         
-        int longest_end = -1; // -1 indicates no match found for this start_pos
+        // Pass boundary context to initial closure
+        std::unordered_set<State*> current_states = get_epsilon_closure({nfa_.start}, initial_at_start, initial_at_end);
+        
+        int longest_end = -1;
 
-        // 1. Check for a zero-length match before consuming characters
         for (State* state : current_states) {
-            if (state->is_accept) {
-                longest_end = start_pos; 
-            }
+            if (state->is_accept) longest_end = start_pos; 
         }
 
-        // 2. Consume characters and track the furthest accept state reached
         for (size_t i = start_pos; i < text.length(); ++i) {
             char c = text[i];
             std::unordered_set<State*> next_states;
@@ -62,22 +65,20 @@ MatchResult RegexMatcher::find_match(const std::string& text) const {
                 }
             }
 
-            current_states = get_epsilon_closure(next_states);
+            // After consuming a character, we are never at the start boundary
+            bool next_at_start = false; 
+            bool next_at_end = (i + 1 == text.length());
 
-            // If the NFA enters a dead state, stop consuming characters
-            if (current_states.empty()) {
-                break; 
-            }
+            // Pass updated boundary context
+            current_states = get_epsilon_closure(next_states, next_at_start, next_at_end);
 
-            // If we hit an accept state, record this as the new longest match
+            if (current_states.empty()) break; 
+
             for (State* state : current_states) {
-                if (state->is_accept) {
-                    longest_end = i + 1;
-                }
+                if (state->is_accept) longest_end = i + 1;
             }
         }
 
-        // 3. If a match was found, return it immediately (satisfies Left-Most, Longest rule)
         if (longest_end != -1) {
             result.matched = true;
             result.start_idx = start_pos;

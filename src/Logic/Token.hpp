@@ -13,24 +13,28 @@ struct Transition {
     State* target = nullptr;
 };
 
+// Enum for ^ and $ anchor assertions
+enum class Anchor { None, Start, End };
+
 // Single NFA Node
 struct State {
     int id = 0;
     bool is_accept = false;
+    Anchor anchor_assertion = Anchor::None;
     std::vector<Transition> transitions;
     std::vector<State*> epsilon_transitions;
 };
 
 enum class TokenType {
-    Concat, // 
-    Union, // |
-    Star, // *
-    Plus, // +
-    Question, // ?
-    OpenParen, // (
-    CloseParen, // )
+    Concat,      // 
+    Union,       // |
+    Star,        // *
+    Plus,        // +
+    Question,    // ?
+    OpenParen,   // (
+    CloseParen,  // )
     StartAnchor, // ^
-    EndAnchor, // $
+    EndAnchor,   // $
     Literal
 };
 

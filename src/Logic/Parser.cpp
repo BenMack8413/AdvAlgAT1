@@ -7,11 +7,13 @@ std::vector<Token> Parser::insert_concat_operators(const std::vector<Token>& tok
     auto can_end = [](TokenType type) {
         return type == TokenType::Literal || type == TokenType::Star || 
                type == TokenType::Plus || type == TokenType::Question || 
-               type == TokenType::CloseParen;
-    };
+               type == TokenType::CloseParen || 
+               type == TokenType::StartAnchor || type == TokenType::EndAnchor;
+};
 
     auto can_start = [](TokenType type) {
-        return type == TokenType::Literal || type == TokenType::OpenParen;
+        return type == TokenType::Literal || type == TokenType::OpenParen || 
+               type == TokenType::StartAnchor || type == TokenType::EndAnchor;
     };
 
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -38,7 +40,7 @@ std::vector<Token> Parser::infix_to_postfix(const std::vector<Token>& infix) {
     };
 
     for (const auto& token : infix) {
-        if (token.type == TokenType::Literal) {
+        if (token.type == TokenType::Literal || token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
             postfix.push_back(token);
         } else if (token.type == TokenType::OpenParen) {
             op_stack.push(token);

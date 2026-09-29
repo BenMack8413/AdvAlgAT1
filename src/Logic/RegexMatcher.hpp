@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include "Token.hpp"
 #include "NfaBuilder.hpp"
-#include "../Types.hpp"
+#include "../Types.hpp" // Ensure this path matches your directory structure
 
 class RegexMatcher {
 public:
@@ -16,7 +16,8 @@ private:
     std::string pattern_;
     NfaGraph nfa_;
 
-    std::unordered_set<State*> get_epsilon_closure(const std::unordered_set<State*>& states) const;
+    // Updated signature to handle ^ and $ anchors
+    std::unordered_set<State*> get_epsilon_closure(const std::unordered_set<State*>& states, bool at_start, bool at_end) const;
 };
 
 #endif // REGEX_MATCHER_HPP

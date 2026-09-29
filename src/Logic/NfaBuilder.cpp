@@ -21,6 +21,15 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
             start->transitions.push_back({token.matcher, accept});
             stack.push({start, accept});
         } 
+        else if (token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
+            State* start = create_state();
+            State* accept = create_state();
+
+            start->anchor_assertion = (token.type == TokenType::StartAnchor) ? Anchor::Start : Anchor::End;
+            start->epsilon_transitions.push_back(accept);
+
+            stack.push({start, accept});
+        }
         else if (token.type == TokenType::Concat) {
             Fragment right = stack.top(); stack.pop();
             Fragment left = stack.top(); stack.pop();
@@ -77,6 +86,15 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
             start->epsilon_transitions.push_back(accept);
             sub.accept->epsilon_transitions.push_back(accept);
 
+            stack.push({start, accept});
+        }
+        else if (token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
+            State* start = create_state();
+            State* accept = create_state();
+            
+            start->anchor_assertion = (token.type == TokenType::StartAnchor) ? Anchor::Start : Anchor::End;
+            start->epsilon_transitions.push_back(accept);
+            
             stack.push({start, accept});
         }
     }
