@@ -27,6 +27,21 @@ std::vector<Token> Tokeniser::tokenise() {
                 i += 2;
                 continue;
             }
+            if (next == 'x' && i + 3 < pattern_.length()) {
+                std::string hex_str = pattern_.substr(i + 2, 2);
+                char hex_val = static_cast<char>(std::stoul(hex_str, nullptr, 16));
+                
+                Token t;
+                t.type = TokenType::Literal;
+                bool ci = case_insensitive_;
+                t.matcher = [hex_val, ci](char ch) {
+                    if (ci) return std::tolower(static_cast<unsigned char>(ch)) == std::tolower(static_cast<unsigned char>(hex_val));
+                    return ch == hex_val;
+                };
+                tokens.push_back(t);
+                i += 4;
+                continue;
+            }
 
             Token t;
             t.type = TokenType::Literal;
