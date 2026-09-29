@@ -82,12 +82,11 @@ run_test() {
 run_cli_test() {
     local test_name="$1"
     local expected_keyword="$2"
-    shift 2 # Remove the first two arguments so only the CLI args remain
+    shift 2
     local args=("$@")
 
     echo -n "Running Test: [$test_name] ... "
 
-    # Execute tool with the exact array of arguments
     output=$($EXECUTABLE "${args[@]}" 2>&1)
 
     local status="FAIL"
@@ -96,7 +95,8 @@ run_cli_test() {
             status="PASS"
         fi
     else
-        if echo "$output" | grep -q "$expected_keyword"; then
+        # Use -e to prevent grep from treating $expected_keyword as CLI flags
+        if echo "$output" | grep -q -e "$expected_keyword"; then
             status="PASS"
         fi
     fi
