@@ -1,27 +1,40 @@
+// InputHandler.cpp
 #include "InputHandler.hpp"
-#include <stdexcept>
-#include <filesystem>
 
-InputHandler::InputHandler(int argc, char* argv[]) {
-    parse_arguments(argc, argv);
-}
+RegexConfig InputHandler::parse(int argc, char* argv[]) {
+    RegexConfig config;
+    bool pattern_found = false;
 
-std::string InputHandler::get_pattern() const { return pattern_; }
-std::string InputHandler::get_target() const { return target_input_; }
-InputType InputHandler::get_input_type() const { return type_; }
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
 
-void InputHandler::parse_arguments(int argc, char* argv[]) {
-    if (argc < 3) {
-        throw std::invalid_argument("Usage: ./regex_tool <pattern> <string|filepath>");
+        // If it starts with '-', we haven't found the pattern yet, and it's not a standalone '-'
+        if (!pattern_found && !arg.empty() && arg[0] == '-' && arg != "-") {
+            for (size_t j = 1; j < arg.length(); ++j) {
+                switch (arg[j]) {
+                    case 'i': config.case_insensitive = true; break;
+                    case 'v': config.invert_match = true; break;
+                    case 'c': config.count_only = true; break;
+                    case 'n': config.line_numbers = true; break;
+                    default:
+                        throw std::invalid_argument(std::string("Unknown flag: -") + arg[j]);
+                }
+            }
+        } 
+        // Otherwise, it is a positional argument (pattern or target)
+        else {
+            if (!pattern_found) {
+                config.pattern = arg;
+                pattern_found = true;
+            } else {
+                config.targets.push_back(arg);
+            }
+        }
     }
 
-    pattern_ = argv[1];
-    target_input_ = argv[2];
-
-    if (std::filesystem::exists(target_input_) && 
-        std::filesystem::is_regular_file(target_input_)) {
-        type_ = InputType::FilePath;
-    } else {
-        type_ = InputType::DirectString;
+    if (config.pattern.empty()) {
+        throw std::invalid_argument("Usage: regex_tool [FLAGS] <pattern> [target1 target2 ...]");
     }
+
+    return config;
 }
