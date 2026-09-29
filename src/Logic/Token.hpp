@@ -22,14 +22,16 @@ struct State {
 };
 
 enum class TokenType {
-    Literal,
-    Concat,
-    Union,
-    Star,
-    Plus,
-    Question,
-    OpenParen,
-    CloseParen
+    Concat, // 
+    Union, // |
+    Star, // *
+    Plus, // +
+    Question, // ?
+    OpenParen, // (
+    CloseParen, // )
+    StartAnchor, // ^
+    EndAnchor, // $
+    Literal
 };
 
 struct Token {

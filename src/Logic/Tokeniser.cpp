@@ -124,6 +124,8 @@ std::vector<Token> Tokeniser::tokenise() {
             tokens.push_back(t);
             i++;
         }
+        else if (c == '^') { tokens.push_back({TokenType::StartAnchor, nullptr}); i++; }
+        else if (c == '$') { tokens.push_back({TokenType::EndAnchor, nullptr}); i++; }
         else if (c == '|') { tokens.push_back({TokenType::Union, nullptr}); i++; }
         else if (c == '*') { tokens.push_back({TokenType::Star, nullptr}); i++; }
         else if (c == '+') { tokens.push_back({TokenType::Plus, nullptr}); i++; }
