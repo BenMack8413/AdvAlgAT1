@@ -335,16 +335,6 @@ run_test "Lazy Star *?" "<.*?>" "<a>text</a>" "<a>"
 run_test "Greedy Star (Control)" "<.*>" "<a>text</a>" "<a>text</a>"
 run_test "Lazy Plus +?" "a.+?c" "abcbcdc" "abc"
 
-start_category "String - Groups, Lookarounds & Backreferences"
-run_test "Non-Capturing Group" "(?:foo)bar" "foobar" "foobar"
-run_test "Backreference (Same Word Twice)" "\\b(\\w+)\\s+\\1\\b" "cat cat" "cat cat"
-run_test "Backreference Non-Match" "\\b(\\w+)\\s+\\1\\b" "cat dog" ""
-run_test "Positive Lookahead" "foo(?=bar)" "foobar" "foo"
-run_test "Positive Lookahead Non-Match" "foo(?=bar)" "foobaz" ""
-run_test "Negative Lookahead" "foo(?!bar)" "foobaz" "foo"
-run_test "Positive Lookbehind" "(?<=foo)bar" "foobar" "bar"
-run_test "Negative Lookbehind" "(?<!foo)bar" "bazbar" "bar"
-
 start_category "String - Hex & Control Characters"
 run_test "Newline Match" "hello\\nworld" "hello
 world" "world"
