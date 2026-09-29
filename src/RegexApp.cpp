@@ -39,7 +39,11 @@ int RegexApp::run(int argc, char* argv[]) {
                 size_t line_num = 0;
                 while (reader.get_next_line(line, line_num)) {
                     MatchResult match = matcher.find_match(line);
-                    if (match.matched) {
+                    bool is_match = match.matched;
+                    if (config.invert_match) {
+                        is_match = !is_match;
+                    }
+                    if (is_match) {
                         formatter.display_file_match(line_num, line, match);
                     }
                 }

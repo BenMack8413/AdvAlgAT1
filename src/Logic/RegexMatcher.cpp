@@ -48,7 +48,9 @@ std::vector<State*> RegexMatcher::get_epsilon_closure(const std::vector<State*>&
         if (current->anchor_assertion == Anchor::NonWordBoundary && at_wb) continue;
 
         visited.insert(current);
-        closure.push_back(current);
+        if (current->is_accept || !current->transitions.empty()) {
+            closure.push_back(current);
+        }
 
         // Push transitions in reverse order to explore higher priority paths first
         for (auto it = current->epsilon_transitions.rbegin(); it != current->epsilon_transitions.rend(); ++it) {
