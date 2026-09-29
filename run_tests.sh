@@ -334,6 +334,13 @@ start_category "String - Lazy / Ungreedy Quantifiers (*?, +?, ??)"
 run_test "Lazy Star *?" "<.*?>" "<a>text</a>" "<a>"
 run_test "Greedy Star (Control)" "<.*>" "<a>text</a>" "<a>text</a>"
 run_test "Lazy Plus +?" "a.+?c" "abcbcdc" "abc"
+run_test "Lazy Question Minimal Match" "a.??p" "apple" "ap"
+run_test "Greedy Question Control" "a.?p" "apple" "app"
+run_test "Lazy Question Necessary Match" "a??b" "ab" "ab"
+run_test "Lazy Question Skip Character" "a??b" "b" "b"
+run_test "Lazy Question With Group" "(foo)??bar" "foobar" "foobar"
+run_test "Lazy Question With Group Skip" "(foo)??bar" "bar" "bar"
+run_test "Lazy Question Non-Match" "a??b" "xyz" ""
 
 start_category "String - Hex & Control Characters"
 run_test "Newline Match" "hello\\nworld" "hello

@@ -172,6 +172,116 @@ std::vector<Token> Tokeniser::tokenise() {
         }
         else if (c == '(') { tokens.push_back({TokenType::OpenParen, nullptr}); i++; }
         else if (c == ')') { tokens.push_back({TokenType::CloseParen, nullptr}); i++; }
+        else if (c == '{') {
+            size_t j = i + 1;
+            bool valid = false;
+            size_t n = 0;
+            int m = -1; // -1 represents unbounded {n,}
+
+            if (j < pattern_.length() && std::isdigit(static_cast<unsigned char>(pattern_[j]))) {
+                while (j < pattern_.length() && std::isdigit(static_cast<unsigned char>(pattern_[j]))) {
+                    n = n * 10 + (pattern_[j] - '0');
+                    j++;
+                }
+
+                if (j < pattern_.length()) {
+                    if (pattern_[j] == '}') {
+                        m = static_cast<int>(n);
+                        valid = true;
+                        j++;
+                    } else if (pattern_[j] == ',') {
+                        j++;
+                        if (j < pattern_.length() && pattern_[j] == '}') {
+                            m = -1;
+                            valid = true;
+                            j++;
+                        } else if (j < pattern_.length() && std::isdigit(static_cast<unsigned char>(pattern_[j]))) {
+                            size_t parsed_m = 0;
+                            while (j < pattern_.length() && std::isdigit(static_cast<unsigned char>(pattern_[j]))) {
+                                parsed_m = parsed_m * 10 + (pattern_[j] - '0');
+                                j++;
+                            }
+                            if (j < pattern_.length() && pattern_[j] == '}' && parsed_m >= n) {
+                                m = static_cast<int>(parsed_m);
+                                valid = true;
+                                j++;
+                            }
+                        }
+                    }
+                }
+            }
+
+            int atom_start = -1;
+            if (valid && !tokens.empty()) {
+                TokenType last_type = tokens.back().type;
+                if (last_type == TokenType::CloseParen) {
+                    int depth = 0;
+                    for (int k = static_cast<int>(tokens.size()) - 1; k >= 0; --k) {
+                        if (tokens[k].type == TokenType::CloseParen) {
+                            depth++;
+                        } else if (tokens[k].type == TokenType::OpenParen) {
+                            depth--;
+                            if (depth == 0) {
+                                atom_start = k;
+                                break;
+                            }
+                        }
+                    }
+                } else if (last_type == TokenType::Literal || 
+                           last_type == TokenType::WordBoundary || 
+                           last_type == TokenType::NonWordBoundary) {
+                    atom_start = static_cast<int>(tokens.size()) - 1;
+                }
+            }
+
+            if (valid && atom_start != -1) {
+                bool lazy = false;
+                if (j < pattern_.length() && pattern_[j] == '?') {
+                    lazy = true;
+                    j++;
+                }
+                i = j;
+                std::vector<Token> atom(tokens.begin() + atom_start, tokens.end());
+                tokens.erase(tokens.begin() + atom_start, tokens.end());
+
+                if (m == -1) {
+                    if (n == 0) {
+                        tokens.insert(tokens.end(), atom.begin(), atom.end());
+                        tokens.push_back({lazy ? TokenType::LazyStar : TokenType::Star, nullptr});
+                    } else if (n == 1) {
+                        tokens.insert(tokens.end(), atom.begin(), atom.end());
+                        tokens.push_back({lazy ? TokenType::LazyPlus : TokenType::Plus, nullptr});
+                    } else {
+                        for (size_t rep = 0; rep < n - 1; ++rep) {
+                            tokens.insert(tokens.end(), atom.begin(), atom.end());
+                        }
+                        tokens.insert(tokens.end(), atom.begin(), atom.end());
+                        tokens.push_back({lazy ? TokenType::LazyPlus : TokenType::Plus, nullptr});
+                    }
+                } else {
+                    for (size_t rep = 0; rep < n; ++rep) {
+                        tokens.insert(tokens.end(), atom.begin(), atom.end());
+                    }
+                    for (size_t rep = 0; rep < static_cast<size_t>(m) - n; ++rep) {
+                        tokens.insert(tokens.end(), atom.begin(), atom.end());
+                        tokens.push_back({lazy ? TokenType::LazyQuestion : TokenType::Question, nullptr});
+                    }
+                }
+            } else {
+                Token t;
+                t.type = TokenType::Literal;
+                bool ci = case_insensitive_;
+                t.matcher = [c, ci](char ch) {
+                    if (ci) {
+                        return std::tolower(static_cast<unsigned char>(ch)) == 
+                               std::tolower(static_cast<unsigned char>(c));
+                    }
+                    return ch == c;
+                };
+                tokens.push_back(t);
+                i++;
+            }
+        }
         else {
             Token t;
             t.type = TokenType::Literal;
