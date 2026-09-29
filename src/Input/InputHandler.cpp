@@ -22,7 +22,6 @@ RegexConfig InputHandler::parse(int argc, char* argv[]) {
                     case 'i': config.case_insensitive = true; break;
                     case 'v': config.invert_match = true; break;
                     case 'c': config.count_only = true; break;
-                    case 'n': config.line_numbers = true; break;
                     default:
                         throw std::invalid_argument(std::string("Unknown flag: -") + arg[j]);
                 }

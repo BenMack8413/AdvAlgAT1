@@ -7,7 +7,6 @@ struct RegexConfig {
     bool case_insensitive = false;
     bool invert_match = false;
     bool count_only = false;
-    bool line_numbers = false;
     
     std::string pattern;
     std::vector<std::string> targets; 

@@ -363,15 +363,12 @@ run_cli_test "Invert Match (File)" "dog" "-v" "cat" "tests/test_lines.txt"
 # -c: Count matches
 run_cli_test "Count Matches (String)" "2" "-c" "cat" "cat dog cat"
 run_cli_test "Count Matches (File)" "2" "-c" "line" "tests/test_lines.txt"
-# -n: Line numbers (usually outputs N:match)
-run_cli_test "Line Numbers (File)" "2:Second" "-n" "dog" "tests/test_lines.txt"
 
 start_category "CLI Flags - Combinations"
 run_cli_test "Count + Case Insensitive (-ci)" "2" "-ci" "cat" "tests/test_lines.txt"
 run_cli_test "Invert + Case Insensitive (-vi)" "mouse" "-i" "cat" "tests/test_lines.txt"
-run_cli_test "Line Number + Case Insensitive (-ni)" "3:Third" "-ni" "cat" "tests/test_lines.txt"
 run_cli_test "Count + Invert Match (-cv)" "3" "-cv" "dog" "tests/test_lines.txt"
-run_cli_test "All Flags (-cvin)" "2" "-cvin" "cat" "tests/test_lines.txt" # 4 lines total, 2 have "cat/CaT", count of inverted should be 2. (Note: -n might be ignored if -c is outputting a final number, depending on your tool's spec).
+run_cli_test "All Flags (-cvi)" "2" "-cvi" "cat" "tests/test_lines.txt" # 4 lines total, 2 have "cat/CaT", count of inverted should be 2. (Note: -n might be ignored if -c is outputting a final number, depending on your tool's spec).
 
 # =============================================================================
 # SECTION 7: MULTI-INPUT HANDLING (Strings & Files)
@@ -389,7 +386,6 @@ run_cli_test "Multi-File Cross-Match B" "fig" "fig" "tests/test_multi_a.txt" "te
 
 start_category "Multi-Input - Files + Flags"
 run_cli_test "Multi-File + Count" "2" "-c" "^[af]" "tests/test_multi_a.txt" "tests/test_multi_b.txt" # Matches apple (a) and fig (b)
-run_cli_test "Multi-File + Line Numbers" "3:cherry" "-n" "cherry" "tests/test_multi_a.txt" "tests/test_multi_b.txt"
 
 # Output final results summary
 print_summary
