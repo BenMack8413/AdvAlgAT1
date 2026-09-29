@@ -357,18 +357,12 @@ run_test "Carriage Return / Tab Match" "\\r\\t" "$(printf '\r\t')" "" # Validate
 # =============================================================================
 
 start_category "CLI Flags - Single Flags"
-# -v: Invert match (returns lines/strings that DON'T match)
-run_cli_test "Invert Match (String)" "dog" "-v" "cat" "cat" "dog" "mouse"
-run_cli_test "Invert Match (File)" "dog" "-v" "cat" "tests/test_lines.txt"
-# -c: Count matches
+
 run_cli_test "Count Matches (String)" "2" "-c" "cat" "cat dog cat"
 run_cli_test "Count Matches (File)" "2" "-c" "line" "tests/test_lines.txt"
 
 start_category "CLI Flags - Combinations"
 run_cli_test "Count + Case Insensitive (-ci)" "2" "-ci" "cat" "tests/test_lines.txt"
-run_cli_test "Invert + Case Insensitive (-vi)" "mouse" "-i" "cat" "tests/test_lines.txt"
-run_cli_test "Count + Invert Match (-cv)" "3" "-cv" "dog" "tests/test_lines.txt"
-run_cli_test "All Flags (-cvi)" "2" "-cvi" "cat" "tests/test_lines.txt" # 4 lines total, 2 have "cat/CaT", count of inverted should be 2. (Note: -n might be ignored if -c is outputting a final number, depending on your tool's spec).
 
 # =============================================================================
 # SECTION 7: MULTI-INPUT HANDLING (Strings & Files)

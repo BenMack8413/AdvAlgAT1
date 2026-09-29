@@ -15,6 +15,10 @@ void OutputFormatter::display_string_match(const std::string& text, const MatchR
 }
 
 void OutputFormatter::display_file_match(size_t line_num, const std::string& line, const MatchResult& match) const {
+    if (!match.matched) {
+        return;
+    }
+
     std::cout << "Line " << line_num << ": "
               << line.substr(0, match.start_idx)
               << ANSI_RED_BOLD 

@@ -5,7 +5,6 @@
 
 struct RegexConfig {
     bool case_insensitive = false;
-    bool invert_match = false;
     bool count_only = false;
     
     std::string pattern;

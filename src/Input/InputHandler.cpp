@@ -20,7 +20,6 @@ RegexConfig InputHandler::parse(int argc, char* argv[]) {
             for (size_t j = 1; j < arg.length(); ++j) {
                 switch (arg[j]) {
                     case 'i': config.case_insensitive = true; break;
-                    case 'v': config.invert_match = true; break;
                     case 'c': config.count_only = true; break;
                     default:
                         throw std::invalid_argument(std::string("Unknown flag: -") + arg[j]);
