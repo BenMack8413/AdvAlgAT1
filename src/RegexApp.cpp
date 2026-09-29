@@ -14,7 +14,7 @@ int RegexApp::run(int argc, char* argv[]) {
         RegexConfig config = InputHandler::parse(argc, argv);
         
         // Pass the pattern (and eventually config flags like -i) to the matcher
-        RegexMatcher matcher(config.pattern);
+        RegexMatcher matcher(config.pattern, config.case_insensitive);
         OutputFormatter formatter;
 
         // Process every target sequentially

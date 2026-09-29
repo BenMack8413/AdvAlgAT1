@@ -4,9 +4,9 @@
 #include "NfaBuilder.hpp"
 #include <stack>
 
-RegexMatcher::RegexMatcher(const std::string& pattern) {
+RegexMatcher::RegexMatcher(const std::string& pattern, bool case_insensitive) {
     pattern_ = pattern;
-    std::vector<Token> tokens = Tokeniser::tokenise(pattern_);
+    std::vector<Token> tokens = Tokeniser(pattern_, case_insensitive).tokenise();
     std::vector<Token> formatted = Parser::insert_concat_operators(tokens);
     std::vector<Token> postfix = Parser::infix_to_postfix(formatted);
     nfa_ = NfaBuilder::build_from_postfix(postfix);

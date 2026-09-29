@@ -1,13 +1,15 @@
-#ifndef TokeniseR_HPP
-#define TokeniseR_HPP
-
+// Tokeniser.hpp
+#pragma once
+#include "Token.hpp"
 #include <string>
 #include <vector>
-#include "Token.hpp"
 
 class Tokeniser {
 public:
-    static std::vector<Token> tokenise(const std::string& pattern);
-};
+    explicit Tokeniser(const std::string& pattern, bool case_insensitive = false);
+    std::vector<Token> tokenise();
 
-#endif // TokeniseR_HPP
+private:
+    std::string pattern_;
+    bool case_insensitive_;
+};

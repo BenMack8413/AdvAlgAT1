@@ -9,7 +9,7 @@
 
 class RegexMatcher {
 public:
-    explicit RegexMatcher(const std::string& pattern);
+    explicit RegexMatcher(const std::string& pattern, bool case_insensitive = false);
     MatchResult find_match(const std::string& text) const;
 
 private:
