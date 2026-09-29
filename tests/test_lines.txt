@@ -1,0 +1,4 @@
+First line has a cat
+Second line has a dog
+Third line has a CaT
+Fourth line has a mouse

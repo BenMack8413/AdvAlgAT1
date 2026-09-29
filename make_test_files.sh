@@ -55,3 +55,25 @@ EOF
 
 # 9. Missing Newline at EOF File
 printf "first line\nsecond line without newline" > tests/test_no_eof_newline.txt
+
+# 10. Multi-File A
+cat << 'EOF' > tests/test_multi_a.txt
+apple
+banana
+cherry
+EOF
+
+# 11. Multi-File B
+cat << 'EOF' > tests/test_multi_b.txt
+date
+elderberry
+fig
+EOF
+
+# 12. Line Number & Invert Match Target File
+cat << 'EOF' > tests/test_lines.txt
+First line has a cat
+Second line has a dog
+Third line has a CaT
+Fourth line has a mouse
+EOF

@@ -73,9 +73,13 @@ run_test() {
         echo -e "   ${YELLOW}Target:${RESET}   '$input'"
         echo -e "   ${YELLOW}Expected:${RESET} '$expected_keyword'"
         echo -e "   ${YELLOW}Got:${RESET}      '$output'"
+        
+        # Flatten output newlines for the single-line summary
+        local flat_output="${output//$'\n'/\\n}"
+        FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name | CMD: $EXECUTABLE '$pattern' '$input' | EXP: '$expected_keyword' | OUT: '$flat_output'")
+        
         ((FAILED++))
         CAT_FAILED["$CURRENT_CATEGORY"]=$(( ${CAT_FAILED["$CURRENT_CATEGORY"]} + 1 ))
-        FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name (Pattern: '$pattern')")
     fi
 }
 
@@ -95,7 +99,6 @@ run_cli_test() {
             status="PASS"
         fi
     else
-        # Use -e to prevent grep from treating $expected_keyword as CLI flags
         if echo "$output" | grep -q -e "$expected_keyword"; then
             status="PASS"
         fi
@@ -110,15 +113,19 @@ run_cli_test() {
         echo -e "   ${YELLOW}Command:${RESET}  $EXECUTABLE ${args[*]}"
         echo -e "   ${YELLOW}Expected:${RESET} '$expected_keyword'"
         echo -e "   ${YELLOW}Got:${RESET}      '$output'"
+        
+        # Flatten output newlines for the single-line summary
+        local flat_output="${output//$'\n'/\\n}"
+        FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name | CMD: $EXECUTABLE ${args[*]} | EXP: '$expected_keyword' | OUT: '$flat_output'")
+        
         ((FAILED++))
         CAT_FAILED["$CURRENT_CATEGORY"]=$(( ${CAT_FAILED["$CURRENT_CATEGORY"]} + 1 ))
-        FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name (Args: ${args[*]})")
     fi
 }
 
 print_summary() {
     echo -e "\n========================================="
-    echo -e "         CATEGORY BREAKDOWN SUMMARY       "
+    echo -e "         CATEGORY BREAKDOWN SUMMARY      "
     echo -e "========================================="
 
     for cat in "${!CAT_PASSED[@]}"; do
@@ -138,7 +145,7 @@ print_summary() {
     if [ $FAILED -ne 0 ]; then
         echo -e "\n${RED}FAILED TESTS LIST:${RESET}"
         for item in "${FAILED_SUMMARY[@]}"; do
-            echo -e " ${RED}x${RESET} $item"
+            echo -e "${RED}x${RESET} $item"
         done
         exit 1
     fi
@@ -295,6 +302,94 @@ run_test "Middle Occurrence Matching" "dog" "tests/test_multiple_matches.txt" "d
 start_category "File - EOF & Formatting Edge Cases"
 run_test "Standard Line in EOF File" "first line" "tests/test_no_eof_newline.txt" "Line 1"
 run_test "Missing Newline at EOF Match" "second line" "tests/test_no_eof_newline.txt" "Line 2"
+
+# =============================================================================
+# SECTION 5: ADVANCED REGEX SYNTAX
+# =============================================================================
+
+start_category "String - Anchors (^, $)"
+run_test "Start of String Match" "^hello" "hello world" "hello"
+run_test "Start of String Non-Match" "^world" "hello world" ""
+run_test "End of String Match" "world$" "hello world" "world"
+run_test "End of String Non-Match" "hello$" "hello world" ""
+run_test "Exact String Match (Both Anchors)" "^hello$" "hello" "hello"
+run_test "Exact String Non-Match" "^hello$" "hello world" ""
+
+start_category "String - Word Boundaries (\b, \B)"
+run_test "Word Boundary Match (Start)" "\\bcat" "the cat sat" "cat"
+run_test "Word Boundary Match (End)" "cat\\b" "tomcat" "cat"
+run_test "Word Boundary Exact Word" "\\bcat\\b" "the cat sat" "cat"
+run_test "Word Boundary Non-Match" "\\bcat\\b" "the tomcat sat" ""
+run_test "Non-Word Boundary Match" "tom\\B" "tomcat" "tom"
+run_test "Non-Word Boundary Non-Match" "tom\\B" "tom cat" ""
+
+start_category "String - Specific Quantifiers ({n}, {n,m})"
+run_test "Exact Repetition {n}" "a{3}" "baaac" "aaa"
+run_test "Exact Repetition Non-Match" "a{3}" "baac" ""
+run_test "Min Repetition {n,}" "a{2,}" "baaaac" "aaaa"
+run_test "Min Repetition Non-Match" "a{2,}" "bac" ""
+run_test "Range Repetition {n,m}" "a{2,3}" "baaaac" "aaa"
+
+start_category "String - Lazy / Ungreedy Quantifiers (*?, +?, ??)"
+run_test "Lazy Star *?" "<.*?>" "<a>text</a>" "<a>"
+run_test "Greedy Star (Control)" "<.*>" "<a>text</a>" "<a>text</a>"
+run_test "Lazy Plus +?" "a.+?c" "abcbcdc" "abc"
+run_test "Lazy Question ??" "a??" "aa" "" # Should match empty string if supported
+
+start_category "String - Groups, Lookarounds & Backreferences"
+run_test "Non-Capturing Group" "(?:foo)bar" "foobar" "foobar"
+run_test "Backreference (Same Word Twice)" "\\b(\\w+)\\s+\\1\\b" "cat cat" "cat cat"
+run_test "Backreference Non-Match" "\\b(\\w+)\\s+\\1\\b" "cat dog" ""
+run_test "Positive Lookahead" "foo(?=bar)" "foobar" "foo"
+run_test "Positive Lookahead Non-Match" "foo(?=bar)" "foobaz" ""
+run_test "Negative Lookahead" "foo(?!bar)" "foobaz" "foo"
+run_test "Positive Lookbehind" "(?<=foo)bar" "foobar" "bar"
+run_test "Negative Lookbehind" "(?<!foo)bar" "bazbar" "bar"
+
+start_category "String - Hex & Control Characters"
+run_test "Newline Match" "hello\\nworld" "hello
+world" "world"
+run_test "Hexadecimal Match" "\\x61\\x62\\x63" "abc" "abc"
+run_test "Carriage Return / Tab Match" "\\r\\t" "$(printf '\r\t')" "" # Validates it doesn't crash, grep testing this directly is tricky
+
+# =============================================================================
+# SECTION 6: CLI FLAGS (-v, -c, -n) & COMBINATIONS
+# =============================================================================
+
+start_category "CLI Flags - Single Flags"
+# -v: Invert match (returns lines/strings that DON'T match)
+run_cli_test "Invert Match (String)" "dog" "-v" "cat" "cat" "dog" "mouse"
+run_cli_test "Invert Match (File)" "dog" "-v" "cat" "tests/test_lines.txt"
+# -c: Count matches
+run_cli_test "Count Matches (String)" "2" "-c" "cat" "cat dog cat"
+run_cli_test "Count Matches (File)" "2" "-c" "line" "tests/test_lines.txt"
+# -n: Line numbers (usually outputs N:match)
+run_cli_test "Line Numbers (File)" "2:Second" "-n" "dog" "tests/test_lines.txt"
+
+start_category "CLI Flags - Combinations"
+run_cli_test "Count + Case Insensitive (-ci)" "2" "-ci" "cat" "tests/test_lines.txt"
+run_cli_test "Invert + Case Insensitive (-vi)" "mouse" "-i" "cat" "tests/test_lines.txt"
+run_cli_test "Line Number + Case Insensitive (-ni)" "3:Third" "-ni" "cat" "tests/test_lines.txt"
+run_cli_test "Count + Invert Match (-cv)" "3" "-cv" "dog" "tests/test_lines.txt"
+run_cli_test "All Flags (-cvin)" "2" "-cvin" "cat" "tests/test_lines.txt" # 4 lines total, 2 have "cat/CaT", count of inverted should be 2. (Note: -n might be ignored if -c is outputting a final number, depending on your tool's spec).
+
+# =============================================================================
+# SECTION 7: MULTI-INPUT HANDLING (Strings & Files)
+# =============================================================================
+
+start_category "Multi-Input - Strings"
+# Passing 4 distinct strings to the tool. It should process all of them.
+run_cli_test "Multiple String Inputs Match 1" "apple" "a.*" "apple" "banana" "carrot" "date"
+run_cli_test "Multiple String Inputs Match 2" "carrot" "c.*" "apple" "banana" "carrot" "date"
+
+start_category "Multi-Input - Files"
+# Passing 2 distinct files. Tool should read both. 
+run_cli_test "Multi-File Cross-Match A" "banana" "banana" "tests/test_multi_a.txt" "tests/test_multi_b.txt"
+run_cli_test "Multi-File Cross-Match B" "fig" "fig" "tests/test_multi_a.txt" "tests/test_multi_b.txt"
+
+start_category "Multi-Input - Files + Flags"
+run_cli_test "Multi-File + Count" "2" "-c" "^[af]" "tests/test_multi_a.txt" "tests/test_multi_b.txt" # Matches apple (a) and fig (b)
+run_cli_test "Multi-File + Line Numbers" "3:cherry" "-n" "cherry" "tests/test_multi_a.txt" "tests/test_multi_b.txt"
 
 # Output final results summary
 print_summary
