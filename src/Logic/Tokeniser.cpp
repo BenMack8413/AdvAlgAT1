@@ -29,6 +29,10 @@ std::vector<Token> Tokeniser::tokenise(const std::string& pattern) {
                 t.matcher = [](char ch) { return std::isspace(static_cast<unsigned char>(ch)); };
             } else if (next == 'S') {
                 t.matcher = [](char ch) { return !std::isspace(static_cast<unsigned char>(ch)); };
+            } else if (next == 't') {
+                t.matcher = [](char ch) { return ch == '\t'; };
+            } else if (next == 'n') {
+                t.matcher = [](char ch) { return ch == '\n'; };
             } else {
                 t.matcher = [next](char ch) { return ch == next; };
             }
