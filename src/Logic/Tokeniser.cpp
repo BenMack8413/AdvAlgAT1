@@ -1,7 +1,6 @@
 #include "Tokeniser.hpp"
 #include <cctype>
 #include <stdexcept>
-#include <cctype>
 
 Tokeniser::Tokeniser(const std::string& pattern, bool case_insensitive) 
     : pattern_(pattern), case_insensitive_(case_insensitive) {}
@@ -13,11 +12,22 @@ std::vector<Token> Tokeniser::tokenise() {
     while (i < pattern_.length()) {
         char c = pattern_[i];
 
-        if (c == '\\') { // Escape sequence handling (\d, \w, \s, \., etc.)
+        if (c == '\\') {
             if (i + 1 >= pattern_.length()) {
                 throw std::invalid_argument("Trailing backslash in regex pattern");
             }
             char next = pattern_[i + 1];
+
+            if (next == 'b') {
+                tokens.push_back({TokenType::WordBoundary, nullptr});
+                i += 2;
+                continue;
+            } else if (next == 'B') {
+                tokens.push_back({TokenType::NonWordBoundary, nullptr});
+                i += 2;
+                continue;
+            }
+
             Token t;
             t.type = TokenType::Literal;
 
@@ -38,7 +48,6 @@ std::vector<Token> Tokeniser::tokenise() {
             } else if (next == 'n') {
                 t.matcher = [](char ch) { return ch == '\n'; };
             } else {
-                // Escaped literal character (e.g. '\a', '\.', '\-')
                 bool ci = case_insensitive_;
                 t.matcher = [next, ci](char ch) {
                     if (ci) {
@@ -51,7 +60,7 @@ std::vector<Token> Tokeniser::tokenise() {
             tokens.push_back(t);
             i += 2;
         } 
-        else if (c == '[') { // Bracketed character set/range parsing ([a-z0-9], [^0-9])
+        else if (c == '[') {
             i++;
             bool negated = false;
             if (i < pattern_.length() && pattern_[i] == '^') {
@@ -85,7 +94,6 @@ std::vector<Token> Tokeniser::tokenise() {
                                            : static_cast<unsigned char>(ch);
                 bool in_set = false;
 
-                // 1. Check single characters in class
                 for (char sc : single_chars) {
                     unsigned char target = ci ? std::tolower(static_cast<unsigned char>(sc))
                                              : static_cast<unsigned char>(sc);
@@ -95,7 +103,6 @@ std::vector<Token> Tokeniser::tokenise() {
                     }
                 }
 
-                // 2. Check ranges in class
                 if (!in_set) {
                     for (const auto& r : ranges) {
                         unsigned char r1 = ci ? std::tolower(static_cast<unsigned char>(r.first))
@@ -127,13 +134,30 @@ std::vector<Token> Tokeniser::tokenise() {
         else if (c == '^') { tokens.push_back({TokenType::StartAnchor, nullptr}); i++; }
         else if (c == '$') { tokens.push_back({TokenType::EndAnchor, nullptr}); i++; }
         else if (c == '|') { tokens.push_back({TokenType::Union, nullptr}); i++; }
-        else if (c == '*') { tokens.push_back({TokenType::Star, nullptr}); i++; }
-        else if (c == '+') { tokens.push_back({TokenType::Plus, nullptr}); i++; }
-        else if (c == '?') { tokens.push_back({TokenType::Question, nullptr}); i++; }
+        else if (c == '*') {
+            if (i + 1 < pattern_.length() && pattern_[i + 1] == '?') {
+                tokens.push_back({TokenType::LazyStar, nullptr}); i += 2;
+            } else {
+                tokens.push_back({TokenType::Star, nullptr}); i++;
+            }
+        }
+        else if (c == '+') {
+            if (i + 1 < pattern_.length() && pattern_[i + 1] == '?') {
+                tokens.push_back({TokenType::LazyPlus, nullptr}); i += 2;
+            } else {
+                tokens.push_back({TokenType::Plus, nullptr}); i++;
+            }
+        }
+        else if (c == '?') {
+            if (i + 1 < pattern_.length() && pattern_[i + 1] == '?') {
+                tokens.push_back({TokenType::LazyQuestion, nullptr}); i += 2;
+            } else {
+                tokens.push_back({TokenType::Question, nullptr}); i++;
+            }
+        }
         else if (c == '(') { tokens.push_back({TokenType::OpenParen, nullptr}); i++; }
         else if (c == ')') { tokens.push_back({TokenType::CloseParen, nullptr}); i++; }
         else {
-            // Unescaped plain literal character
             Token t;
             t.type = TokenType::Literal;
             bool ci = case_insensitive_;

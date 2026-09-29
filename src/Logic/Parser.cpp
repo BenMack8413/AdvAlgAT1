@@ -7,13 +7,16 @@ std::vector<Token> Parser::insert_concat_operators(const std::vector<Token>& tok
     auto can_end = [](TokenType type) {
         return type == TokenType::Literal || type == TokenType::Star || 
                type == TokenType::Plus || type == TokenType::Question || 
-               type == TokenType::CloseParen || 
-               type == TokenType::StartAnchor || type == TokenType::EndAnchor;
-};
+               type == TokenType::LazyStar || type == TokenType::LazyPlus || 
+               type == TokenType::LazyQuestion || type == TokenType::CloseParen || 
+               type == TokenType::StartAnchor || type == TokenType::EndAnchor ||
+               type == TokenType::WordBoundary || type == TokenType::NonWordBoundary;
+    };
 
     auto can_start = [](TokenType type) {
         return type == TokenType::Literal || type == TokenType::OpenParen || 
-               type == TokenType::StartAnchor || type == TokenType::EndAnchor;
+               type == TokenType::StartAnchor || type == TokenType::EndAnchor ||
+               type == TokenType::WordBoundary || type == TokenType::NonWordBoundary;
     };
 
     for (size_t i = 0; i < tokens.size(); ++i) {
@@ -33,14 +36,19 @@ std::vector<Token> Parser::infix_to_postfix(const std::vector<Token>& infix) {
     std::stack<Token> op_stack;
 
     auto precedence = [](TokenType type) {
-        if (type == TokenType::Star || type == TokenType::Plus || type == TokenType::Question) return 3;
+        if (type == TokenType::Star || type == TokenType::Plus || type == TokenType::Question ||
+            type == TokenType::LazyStar || type == TokenType::LazyPlus || type == TokenType::LazyQuestion) return 3;
         if (type == TokenType::Concat) return 2;
         if (type == TokenType::Union) return 1;
         return 0;
     };
 
     for (const auto& token : infix) {
-        if (token.type == TokenType::Literal || token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
+        if (token.type == TokenType::Literal || 
+            token.type == TokenType::StartAnchor || 
+            token.type == TokenType::EndAnchor ||
+            token.type == TokenType::WordBoundary ||
+            token.type == TokenType::NonWordBoundary) {
             postfix.push_back(token);
         } else if (token.type == TokenType::OpenParen) {
             op_stack.push(token);

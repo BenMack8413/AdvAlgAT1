@@ -14,7 +14,13 @@ struct Transition {
 };
 
 // Enum for ^ and $ anchor assertions
-enum class Anchor { None, Start, End };
+enum class Anchor { 
+    None, 
+    Start, 
+    End, 
+    WordBoundary,    // \b
+    NonWordBoundary  // \B
+};
 
 // Single NFA Node
 struct State {
@@ -26,15 +32,20 @@ struct State {
 };
 
 enum class TokenType {
-    Concat,      // 
-    Union,       // |
-    Star,        // *
-    Plus,        // +
-    Question,    // ?
-    OpenParen,   // (
-    CloseParen,  // )
-    StartAnchor, // ^
-    EndAnchor,   // $
+    Concat,             // 
+    Union,              // |
+    Star,               // *
+    Plus,               // +
+    Question,           // ?
+    OpenParen,          // (
+    CloseParen,         // )
+    StartAnchor,        // ^
+    EndAnchor,          // $
+    LazyStar,           // *?
+    LazyPlus,           // +?
+    LazyQuestion,       // ??
+    WordBoundary,       // \b
+    NonWordBoundary,    // \B
     Literal
 };
 

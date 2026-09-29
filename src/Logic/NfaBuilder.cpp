@@ -21,13 +21,17 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
             start->transitions.push_back({token.matcher, accept});
             stack.push({start, accept});
         } 
-        else if (token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
+        else if (token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor ||
+                 token.type == TokenType::WordBoundary || token.type == TokenType::NonWordBoundary) {
             State* start = create_state();
             State* accept = create_state();
 
-            start->anchor_assertion = (token.type == TokenType::StartAnchor) ? Anchor::Start : Anchor::End;
-            start->epsilon_transitions.push_back(accept);
+            if (token.type == TokenType::StartAnchor) start->anchor_assertion = Anchor::Start;
+            else if (token.type == TokenType::EndAnchor) start->anchor_assertion = Anchor::End;
+            else if (token.type == TokenType::WordBoundary) start->anchor_assertion = Anchor::WordBoundary;
+            else if (token.type == TokenType::NonWordBoundary) start->anchor_assertion = Anchor::NonWordBoundary;
 
+            start->epsilon_transitions.push_back(accept);
             stack.push({start, accept});
         }
         else if (token.type == TokenType::Concat) {
@@ -51,9 +55,9 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
 
             stack.push({start, accept});
         } 
+        // Greedy Quantifiers (Prioritize sub.start)
         else if (token.type == TokenType::Star) {
             Fragment sub = stack.top(); stack.pop();
-
             State* start = create_state();
             State* accept = create_state();
 
@@ -66,7 +70,6 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
         } 
         else if (token.type == TokenType::Plus) {
             Fragment sub = stack.top(); stack.pop();
-
             State* start = create_state();
             State* accept = create_state();
 
@@ -78,7 +81,6 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
         } 
         else if (token.type == TokenType::Question) {
             Fragment sub = stack.top(); stack.pop();
-
             State* start = create_state();
             State* accept = create_state();
 
@@ -88,13 +90,39 @@ NfaGraph NfaBuilder::build_from_postfix(const std::vector<Token>& postfix) {
 
             stack.push({start, accept});
         }
-        else if (token.type == TokenType::StartAnchor || token.type == TokenType::EndAnchor) {
+        // Lazy / Non-Greedy Quantifiers (Prioritize accept)
+        else if (token.type == TokenType::LazyStar) {
+            Fragment sub = stack.top(); stack.pop();
             State* start = create_state();
             State* accept = create_state();
-            
-            start->anchor_assertion = (token.type == TokenType::StartAnchor) ? Anchor::Start : Anchor::End;
+
             start->epsilon_transitions.push_back(accept);
-            
+            start->epsilon_transitions.push_back(sub.start);
+            sub.accept->epsilon_transitions.push_back(accept);
+            sub.accept->epsilon_transitions.push_back(sub.start);
+
+            stack.push({start, accept});
+        }
+        else if (token.type == TokenType::LazyPlus) {
+            Fragment sub = stack.top(); stack.pop();
+            State* start = create_state();
+            State* accept = create_state();
+
+            start->epsilon_transitions.push_back(sub.start);
+            sub.accept->epsilon_transitions.push_back(accept);
+            sub.accept->epsilon_transitions.push_back(sub.start);
+
+            stack.push({start, accept});
+        }
+        else if (token.type == TokenType::LazyQuestion) {
+            Fragment sub = stack.top(); stack.pop();
+            State* start = create_state();
+            State* accept = create_state();
+
+            start->epsilon_transitions.push_back(accept);
+            start->epsilon_transitions.push_back(sub.start);
+            sub.accept->epsilon_transitions.push_back(accept);
+
             stack.push({start, accept});
         }
     }
