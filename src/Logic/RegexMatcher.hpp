@@ -11,7 +11,7 @@
 class RegexMatcher {
 public:
     explicit RegexMatcher(const std::string& pattern, bool case_insensitive = false);
-    MatchResult find_match(const std::string& text) const;
+    MatchResult find_match(const std::string& text, size_t start_from = 0) const;
 
 private:
     std::string pattern_;

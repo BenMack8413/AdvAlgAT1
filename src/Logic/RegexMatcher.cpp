@@ -63,11 +63,11 @@ std::vector<State*> RegexMatcher::get_epsilon_closure(const std::vector<State*>&
     return closure;
 }
 
-MatchResult RegexMatcher::find_match(const std::string& text) const {
-    MatchResult result;
+MatchResult RegexMatcher::find_match(const std::string& text, size_t start_from) const {
+     MatchResult result;
     if (!nfa_.start) return result;
 
-    for (size_t start_pos = 0; start_pos <= text.length(); ++start_pos) {
+    for (size_t start_pos = start_from; start_pos <= text.length(); ++start_pos) {
         std::vector<State*> current_states = get_epsilon_closure({nfa_.start}, text, start_pos);
 
         int best_end = -1;

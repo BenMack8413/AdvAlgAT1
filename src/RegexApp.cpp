@@ -20,11 +20,18 @@ int RegexApp::run(int argc, char* argv[]) {
             bool is_file = std::filesystem::exists(target) && std::filesystem::is_regular_file(target);
 
             if (!is_file) {
-                MatchResult match = matcher.find_match(target);
-
-                if (match.matched) {
-                    total_match_count++;
-                    if (!config.count_only) {
+                if (config.count_only) {
+                    size_t start_pos = 0;
+                    while (start_pos <= target.length()) {
+                        MatchResult match = matcher.find_match(target, start_pos);
+                        if (!match.matched) break;
+                        total_match_count++;
+                        // Advance past match (at least 1 char to avoid infinite loops on empty matches)
+                        start_pos = (match.end_idx > start_pos) ? match.end_idx : start_pos + 1;
+                    }
+                } else {
+                    MatchResult match = matcher.find_match(target);
+                    if (match.matched) {
                         formatter.display_string_match(target, match);
                     }
                 }

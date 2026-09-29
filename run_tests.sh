@@ -348,7 +348,7 @@ run_test "Carriage Return / Tab Match" "\\r\\t" "$(printf '\r\t')" "" # Validate
 start_category "CLI Flags - Single Flags"
 
 run_cli_test "Count Matches (String)" "2" "-c" "cat" "cat dog cat"
-run_cli_test "Count Matches (File)" "2" "-c" "line" "tests/test_lines.txt"
+run_cli_test "Count Matches (File)" "2" "-c" "line" "tests/test_multi_line.txt"
 
 start_category "CLI Flags - Combinations"
 run_cli_test "Count + Case Insensitive (-ci)" "2" "-ci" "cat" "tests/test_lines.txt"
