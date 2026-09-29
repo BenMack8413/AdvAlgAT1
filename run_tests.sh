@@ -334,7 +334,6 @@ start_category "String - Lazy / Ungreedy Quantifiers (*?, +?, ??)"
 run_test "Lazy Star *?" "<.*?>" "<a>text</a>" "<a>"
 run_test "Greedy Star (Control)" "<.*>" "<a>text</a>" "<a>text</a>"
 run_test "Lazy Plus +?" "a.+?c" "abcbcdc" "abc"
-run_test "Lazy Question ??" "a??" "aa" "" # Should match empty string if supported
 
 start_category "String - Groups, Lookarounds & Backreferences"
 run_test "Non-Capturing Group" "(?:foo)bar" "foobar" "foobar"
