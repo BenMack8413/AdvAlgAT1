@@ -26,63 +26,7 @@ fi
 # =============================================================================
 # SECTION 1: DYNAMIC TEST FILE CREATION
 # =============================================================================
-mkdir -p tests
-
-# 1. Standard Single Line Test File
-cat << 'EOF' > tests/test_single_line.txt
-The quick brown fox jumps over 123 lazy dogs.
-EOF
-
-# 2. Standard Multi-Line Test File
-cat << 'EOF' > tests/test_multi_line.txt
-Header line: system initialization
-ERROR: Database connection failed on port 5432
-INFO: Retrying connection...
-ERROR: Timeout reached after 3000ms
-Footer line: process terminated
-EOF
-
-# 3. Empty Test File
-touch tests/test_empty.txt
-
-# 4. Structured Log File
-cat << 'EOF' > tests/test_logs.txt
-2026-09-29 10:00:01 [INFO] User logged in from 192.168.1.50
-2026-09-29 10:02:15 [WARN] High memory usage: 88%
-2026-09-29 10:05:30 [INFO] User logged out from 10.0.0.1
-EOF
-
-# 5. Long Line Stress Test File (10,000 'a's + target + 10,000 'b's)
-LONG_PREFIX=$(printf 'a%.0s' {1..10000})
-LONG_SUFFIX=$(printf 'b%.0s' {1..10000})
-echo "${LONG_PREFIX}STRESS_TARGET_MATCH${LONG_SUFFIX}" > tests/test_long_line.txt
-
-# 6. Whitespace & Blank Lines File
-cat << 'EOF' > tests/test_whitespace.txt
-
-
-   
-	line with leading tab
-trailing space   
-
-EOF
-
-# 7. Symbol-Heavy Configuration File
-cat << 'EOF' > tests/test_config.ini
-[database]
-server_host=127.0.0.1:8080
-db_pass="P@ssw0rd!#123"
-enabled=true # main flag
-EOF
-
-# 8. Multiple Matches / Overlaps File
-cat << 'EOF' > tests/test_multiple_matches.txt
-cat dog cat bird cat
-EOF
-
-# 9. Missing Newline at EOF File
-printf "first line\nsecond line without newline" > tests/test_no_eof_newline.txt
-
+./make_test_files.sh
 
 # =============================================================================
 # SECTION 2: TEST RUNNER LOGIC & GROUPING HELPERS
@@ -132,6 +76,43 @@ run_test() {
         ((FAILED++))
         CAT_FAILED["$CURRENT_CATEGORY"]=$(( ${CAT_FAILED["$CURRENT_CATEGORY"]} + 1 ))
         FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name (Pattern: '$pattern')")
+    fi
+}
+
+run_cli_test() {
+    local test_name="$1"
+    local expected_keyword="$2"
+    shift 2 # Remove the first two arguments so only the CLI args remain
+    local args=("$@")
+
+    echo -n "Running Test: [$test_name] ... "
+
+    # Execute tool with the exact array of arguments
+    output=$($EXECUTABLE "${args[@]}" 2>&1)
+
+    local status="FAIL"
+    if [ -z "$expected_keyword" ]; then
+        if [ -z "$output" ]; then
+            status="PASS"
+        fi
+    else
+        if echo "$output" | grep -q "$expected_keyword"; then
+            status="PASS"
+        fi
+    fi
+
+    if [ "$status" == "PASS" ]; then
+        echo -e "${GREEN}PASS${RESET}"
+        ((PASSED++))
+        CAT_PASSED["$CURRENT_CATEGORY"]=$(( ${CAT_PASSED["$CURRENT_CATEGORY"]} + 1 ))
+    else
+        echo -e "${RED}FAIL${RESET}"
+        echo -e "   ${YELLOW}Command:${RESET}  $EXECUTABLE ${args[*]}"
+        echo -e "   ${YELLOW}Expected:${RESET} '$expected_keyword'"
+        echo -e "   ${YELLOW}Got:${RESET}      '$output'"
+        ((FAILED++))
+        CAT_FAILED["$CURRENT_CATEGORY"]=$(( ${CAT_FAILED["$CURRENT_CATEGORY"]} + 1 ))
+        FAILED_SUMMARY+=("[$CURRENT_CATEGORY] $test_name (Args: ${args[*]})")
     fi
 }
 
@@ -191,7 +172,7 @@ run_test "Char Class Set Non-Match" "[aeiou]" "rhythm" ""
 run_test "Char Class Lowercase Range" "[a-z]+" "123abc456" "abc"
 run_test "Char Class Uppercase Range" "[A-Z]+" "helloWORLD" "WORLD"
 run_test "Char Class Digit Range" "[0-9]+" "room 404" "404"
-run_test "Char Class Multi-Range Alphanumeric" "[a-zA-Z0-9]+" "---Code123---" "Code123"
+run_test "Char Class Multi-Range Alphanumeric" "[a-zA-Z0-9]+" "===Code123===" "Code123"
 run_test "Char Class Range with Underscore" "[a-z_]+" "user_name_1" "user_name_"
 
 start_category "String - Negated Character Classes ([^...])"
@@ -249,6 +230,27 @@ run_test "IPv4 Address Format" "\\d+\\.\\d+\\.\\d+\\.\\d+" "ip is 192.168.1.1 on
 run_test "C Identifier Syntax" "[a-zA-Z_]\\w*" "int _myVar1 = 5;" "_myVar1"
 run_test "Floating Point Number" "\\d+\\.\\d+" "price is 19.99 dollars" "19.99"
 run_test "HTML Tag Format" "<[a-z]+>" "content <div> inside" "<div>"
+
+start_category "CLI Parser & Flags"
+
+# 1. Basic Flag Tests
+run_cli_test "Case Insensitive Literal" "HeLlO" "-i" "hello" "HeLlO WoRlD"
+run_cli_test "Case Insensitive Class Range" "ABC" "-i" "[a-z]+" "123ABC456"
+
+# 2. Delimiter (--) Tests
+# Without --, "-pattern" would throw an "Unknown flag: -p" error
+run_cli_test "Double Dash Protects Pattern" "-pattern" "--" "-pattern" "this-is-a-pattern-test"
+
+# 3. Target Starting with Hyphen
+# Because flags come first, the parser knows "-target" is positional
+run_cli_test "Target Starts With Hyphen" "Code123" "[a-zA-Z0-9]+" "---Code123---"
+
+# 4. Combined Delimiter and Flags
+run_cli_test "Flag and Double Dash" "-HeLlO" "-i" "--" "-hello" "test--HeLlO--test"
+
+# 5. Multiple Targets
+# Passing two direct strings to ensure the loop processes both
+run_cli_test "Multiple Targets Processing" "match2" "match\d" "match1" "match2"
 
 # =============================================================================
 # SECTION 4: FILE READING TESTS
