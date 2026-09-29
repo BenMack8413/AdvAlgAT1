@@ -1,0 +1,5 @@
+Header line: system initialization
+ERROR: Database connection failed on port 5432
+INFO: Retrying connection...
+ERROR: Timeout reached after 3000ms
+Footer line: process terminated

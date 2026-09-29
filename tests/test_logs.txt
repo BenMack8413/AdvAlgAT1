@@ -1,0 +1,3 @@
+2026-09-29 10:00:01 [INFO] User logged in from 192.168.1.50
+2026-09-29 10:02:15 [WARN] High memory usage: 88%
+2026-09-29 10:05:30 [INFO] User logged out from 10.0.0.1

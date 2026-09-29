@@ -31,7 +31,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 test: $(TARGET)
-	@bash tests/run_tests.sh
+	@bash run_tests.sh
 
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)

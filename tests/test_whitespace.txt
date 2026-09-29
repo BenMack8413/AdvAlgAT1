@@ -1,0 +1,6 @@
+
+
+   
+	line with leading tab
+trailing space   
+
