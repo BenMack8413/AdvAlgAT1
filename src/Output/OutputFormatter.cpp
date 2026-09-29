@@ -3,7 +3,6 @@
 
 void OutputFormatter::display_string_match(const std::string& text, const MatchResult& match) const {
     if (!match.matched) {
-        std::cout << "No match found.\n";
         return;
     }
     
