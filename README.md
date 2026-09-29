@@ -39,7 +39,7 @@ make
 
 # Clean build artifacts
 make clean
-
+```
 ## Usage
 The tool accepts two arguments: the regex pattern and the target. The target can be a direct string or a file path.
 ### String Matching 
