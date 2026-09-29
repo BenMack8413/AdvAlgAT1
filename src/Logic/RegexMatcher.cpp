@@ -36,19 +36,20 @@ MatchResult RegexMatcher::find_match(const std::string& text) const {
     MatchResult result;
     if (!nfa_.start) return result;
 
+    // Left-most match evaluation: prioritize matches that start earlier in the string
     for (size_t start_pos = 0; start_pos <= text.length(); ++start_pos) {
         std::unordered_set<State*> current_states = get_epsilon_closure({nfa_.start});
+        
+        int longest_end = -1; // -1 indicates no match found for this start_pos
 
-        // Check if starting state is an accept state before consuming characters
+        // 1. Check for a zero-length match before consuming characters
         for (State* state : current_states) {
             if (state->is_accept) {
-                result.matched = true;
-                result.start_idx = start_pos;
-                result.end_idx = start_pos;
-                // If text remaining, continue matching to find full substring match
+                longest_end = start_pos; 
             }
         }
 
+        // 2. Consume characters and track the furthest accept state reached
         for (size_t i = start_pos; i < text.length(); ++i) {
             char c = text[i];
             std::unordered_set<State*> next_states;
@@ -63,19 +64,26 @@ MatchResult RegexMatcher::find_match(const std::string& text) const {
 
             current_states = get_epsilon_closure(next_states);
 
-            for (State* state : current_states) {
-                if (state->is_accept) {
-                    result.matched = true;
-                    result.start_idx = start_pos;
-                    result.end_idx = i + 1;
-                    return result; // Return longest match starting at start_pos
-                }
+            // If the NFA enters a dead state, stop consuming characters
+            if (current_states.empty()) {
+                break; 
             }
 
-            if (current_states.empty()) break;
+            // If we hit an accept state, record this as the new longest match
+            for (State* state : current_states) {
+                if (state->is_accept) {
+                    longest_end = i + 1;
+                }
+            }
         }
 
-        if (result.matched) return result;
+        // 3. If a match was found, return it immediately (satisfies Left-Most, Longest rule)
+        if (longest_end != -1) {
+            result.matched = true;
+            result.start_idx = start_pos;
+            result.end_idx = longest_end;
+            return result;
+        }
     }
 
     return result;
