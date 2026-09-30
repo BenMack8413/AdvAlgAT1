@@ -181,7 +181,6 @@ run_test "Char Class Uppercase Range" "[A-Z]+" "helloWORLD" "WORLD"
 run_test "Char Class Digit Range" "[0-9]+" "room 404" "404"
 run_test "Char Class Multi-Range Alphanumeric" "[a-zA-Z0-9]+" "===Code123===" "Code123"
 run_test "Char Class Range with Underscore" "[a-z_]+" "user_name_1" "user_name_"
-
 start_category "String - Negated Character Classes ([^...])"
 run_test "Negated Set Match First Consonant" "[^aeiou]+" "apple" "ppl"
 run_test "Negated Digit Range" "[^0-9]+" "123abc456" "abc"

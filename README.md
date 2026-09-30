@@ -1,62 +1,130 @@
 # Regex CLI Tool
 
-A custom, lightweight regular expression engine built from scratch in C++. It parses regex patterns into Non-Deterministic Finite Automata (NFAs) using Thompson's Construction and evaluates text via NFA simulation. It supports both direct string evaluation and line-by-line file scanning, mirroring the standard Unix philosophy of silent failures and highlighted terminal output.
+A regular expression engine built from scratch in C++17, wrapped in a small grep-style command-line tool. Patterns are compiled into a Non-Deterministic Finite Automaton (NFA) using Thompson's Construction and matched by simulating the NFA directly, so there is no backtracking and no exponential blow-up on pathological patterns.
 
-## Core Features
+The tool scans direct string arguments or files line by line, highlights matches in the terminal, and stays silent when nothing matches (Unix style).
 
-* **NFA-Based Evaluation:** Compiles patterns into NFAs for efficient, linear-time matching without catastrophic backtracking.
-* **Greedy Matching:** Implements the left-most, longest match rule to correctly handle unbounded quantifiers (`+`, `*`).
-* **Dual Execution Modes:** Scan a direct string argument or parse multiline text files.
-* **Unix-Style Output:** Returns colored ANSI highlights for valid matches and fails silently (empty output) for non-matches.
-* **Comprehensive Test Suite:** Includes stress tests for buffer limits, complex file format parsing, and detailed string edge cases.
+## Features
+
+* **Thompson's Construction NFA** built from a postfix token stream (shunting-yard parser).
+* **Backtracking-free simulation**: the matcher advances a set of active NFA states one character at a time.
+* **Greedy and lazy quantifiers**: `*`, `+`, `?`, `{n}`, `{n,}`, `{n,m}`, and lazy variants (`*?`, `+?`, `??`, `{n,m}?`).
+* **Anchors and assertions**: `^`, `$`, `\b`, `\B`.
+* **Character classes** with ranges and negation, plus `\d \w \s` shorthands (and negations).
+* **Case-insensitive mode** (`-i`) and **count mode** (`-c`).
+* **Multiple targets**: mix any number of strings and files in one call.
+* **Automated test suite** covering syntax, quantifier semantics, CLI parsing, file edge cases and stress inputs.
 
 ## Supported Regex Syntax
 
 | Feature | Syntax | Example | Description |
 | :--- | :--- | :--- | :--- |
-| **Literals** | `a`, `b`, `1` | `cat` | Matches exact characters. |
-| **Wildcard** | `.` | `c.t` | Matches any single character. |
-| **Character Classes** | `[...]` | `[aeiou]` | Matches any character inside the brackets. |
-| **Class Ranges** | `[x-y]` | `[a-zA-Z0-9]` | Matches characters within the specified ASCII ranges. |
-| **Negated Classes** | `[^...]` | `[^0-9]` | Matches any character *not* inside the brackets. |
-| **Shorthands** | `\d`, `\w`, `\s` | `\d+` | Matches digits (`\d`), word characters (`\w`), or whitespace (`\s`). |
-| **Negated Shorthands** | `\D`, `\W`, `\S` | `\S+` | Matches non-digits (`\D`), non-words (`\W`), or non-whitespace (`\S`). |
-| **Whitespace Escapes** | `\t`, `\n` | `\tline` | Matches horizontal tabs or newline characters. |
-| **Zero or More** | `*` | `ab*c` | Matches the preceding element 0 or more times (Greedy). |
-| **One or More** | `+` | `ab+c` | Matches the preceding element 1 or more times (Greedy). |
-| **Zero or One** | `?` | `colou?r` | Matches the preceding element 0 or 1 time. |
-| **Alternation** | `\|` | `cat\|dog` | Matches either the pattern on the left or the right. |
-| **Grouping** | `(...)` | `(ab)+` | Groups multiple tokens together to apply quantifiers or alternation. |
-| **Escaping** | `\` | `a\+b` | Escapes metacharacters to match them literally. |
+| Literals | `a`, `1` | `cat` | Matches the exact characters. |
+| Wildcard | `.` | `c.t` | Any single character except newline. |
+| Character class | `[abc]` | `[aeiou]` | Any one character in the set. |
+| Class ranges | `[x-y]` | `[a-zA-Z0-9_]` | ASCII ranges, combinable with single characters. |
+| Negated class | `[^...]` | `[^0-9]` | Any character not in the set. |
+| Shorthands | `\d \w \s` | `\d+` | Digit, word character (`[A-Za-z0-9_]`), whitespace. |
+| Negated shorthands | `\D \W \S` | `\S+` | Complements of the above. |
+| Whitespace escapes | `\t`, `\n` | `\tindent` | Tab and newline. |
+| Hex escape | `\xHH` | `\x41` | Character with the given two-digit hex code. |
+| Escaping | `\` + metachar | `a\+b`, `\(x\)` | Matches the metacharacter literally. |
+| Zero or more | `*` | `ab*c` | Greedy. |
+| One or more | `+` | `ab+c` | Greedy. |
+| Zero or one | `?` | `colou?r` | Greedy. |
+| Counted repetition | `{n}` `{n,}` `{n,m}` | `a{2,4}` | Exactly n, at least n, or n to m repetitions. |
+| Lazy quantifiers | `*?` `+?` `??` `{n,m}?` | `<.*?>` | Prefer the shortest match. |
+| Alternation | `\|` | `cat\|dog` | Either side; earlier branches take priority. |
+| Grouping | `(...)` | `(ab)+` | Applies quantifiers or alternation to a sub-pattern. |
+| Start / end anchors | `^`, `$` | `^Error`, `done$` | Start / end of the line or string. |
+| Word boundaries | `\b`, `\B` | `\bcat\b` | Word boundary / not a word boundary. |
 
-## Build & Installation
+**Not supported:** capture groups and backreferences, lookahead/lookbehind, `\r`, escapes or shorthands *inside* `[...]`, Unicode-aware matching (input is treated as bytes), and empty alternation branches or empty groups such as `a|` or `()`.
 
-Ensure you have a modern C++ compiler (`g++` or `clang++`) and `make` installed.
+### Match semantics
+
+The engine reports the **leftmost** match. Among matches starting at that position, quantifier and alternation priority decides the result (Perl/PCRE-style "leftmost-first"): greedy quantifiers prefer more input, lazy quantifiers prefer less, and in `a|b` the left branch is preferred. This is *not* POSIX leftmost-longest, so `cat|category` matches `cat` in the text `category`.
+
+## Build
+
+Requires `g++` (or any C++17 compiler; edit `CXX` in the Makefile) and `make`.
 
 ```bash
-# Compile the executable
-make
-
-# Clean build artifacts
-make clean
+make          # builds ./bin/regex_tool
+make clean    # removes build/ and bin/
 ```
+
 ## Usage
-The tool accepts two arguments: the regex pattern and the target. The target can be a direct string or a file path.
-### String Matching 
-```bash
-./bin/regex_tool "\d+" "user id 404 found"
-```
-### File Matching
-```Bash
-./bin/regex_tool "ERROR\|WARN" /var/log/syslog
-```
-(Note: When no match is found, the tool exits silently without printing anything to standard output.)
-## Testing
-The project includes an automated Bash test suite that validates AST construction, quantifier greediness, file-reading edge cases, and stress limits.
-```Bash
-# Make the script executable
-chmod +x tests/run_tests.sh
 
-# Run the test suite
-./tests/run_tests.sh
 ```
+regex_tool [FLAGS] [--] <pattern> [target1 target2 ...]
+```
+
+A target that is an existing regular file is scanned line by line. Anything else is treated as a literal string to search.
+
+| Flag | Meaning |
+| :--- | :--- |
+| `-i` | Case-insensitive matching. |
+| `-c` | Print only the number of matches instead of the matches themselves. |
+| `--` | End of flags; everything after is positional. Lets a pattern start with `-`. |
+
+Short flags can be combined (`-ic`). Flags must come before the pattern.
+
+### Examples
+
+```bash
+# Direct string: the first match is highlighted in bold red
+./bin/regex_tool "\d+" "user id 404 found"
+
+# File: matching lines are printed with their line numbers
+./bin/regex_tool "ERROR|WARN" /var/log/syslog
+#   Line 12: ... ERROR ...
+
+# Case-insensitive
+./bin/regex_tool -i "hello" "HeLlO WoRlD"
+
+# Count matches (strings: non-overlapping matches; files: matching lines)
+./bin/regex_tool -c "cat" "cat dog cat"      # prints 2
+./bin/regex_tool -c "line" notes.txt
+
+# Pattern that starts with a dash
+./bin/regex_tool -- "-pattern" "this-is-a-pattern-test"
+
+# Multiple targets (strings and files can be mixed)
+./bin/regex_tool "^[af]" fruit_a.txt fruit_b.txt
+```
+
+Note the shell: quote the pattern so `|`, `*`, `(`, `\` and `$` reach the tool unchanged.
+
+### Output behaviour
+
+* String target: the whole string is printed with the matched part highlighted.
+* File target: `Line <n>: <line>` with the matched part highlighted.
+* No match: nothing is printed. With `-c`, `0` is printed.
+* Invalid pattern or unknown flag: an error message on stderr and exit status 1. Unlike `grep`, a non-match still exits 0.
+
+## Project Structure
+
+```
+src/
+  main.cpp, RegexApp.{hpp,cpp}   entry point and top-level control flow
+  Types.hpp                      MatchResult
+  Input/    InputHandler, FileReader        argument parsing, line reading
+  Logic/    Tokeniser, Parser, NfaBuilder,  pattern -> tokens -> postfix -> NFA -> match
+            RegexMatcher, Token.hpp
+  Output/   OutputFormatter                 ANSI highlighting
+run_tests.sh, make_test_files.sh            test suite and test-data generator
+Makefile
+```
+
+## Testing
+
+```bash
+make test
+```
+
+This builds the tool if needed, runs `make_test_files.sh` to generate the fixture files in `tests/`, and then runs `run_tests.sh`. Tests are grouped into categories (literals, classes, quantifiers, lazy matching, anchors, word boundaries, CLI flags, file edge cases, long-line stress tests, multi-input handling) and a per-category pass/fail summary is printed at the end. The script exits non-zero if any test fails.
+
+## Complexity
+
+Simulation keeps a set of active NFA states, so each input character costs O(m) for a pattern of size m, and there is no backtracking. The tool tries each start position in turn, so scanning a line of length n is O(n² · m) in the worst case, and typically much faster because a start position is abandoned as soon as its state set empties.
